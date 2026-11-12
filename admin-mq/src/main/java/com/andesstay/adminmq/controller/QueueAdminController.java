@@ -1,66 +1,76 @@
 package com.andesstay.adminmq.controller;
 
+import com.andesstay.adminmq.dto.BindingRequestDto;
+import com.andesstay.adminmq.dto.ExchangeRequestDto;
 import com.andesstay.adminmq.dto.QueueRequestDto;
 import com.andesstay.adminmq.service.RabbitAdminService;
-import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 @RestController
-@RequestMapping("/api/admin/queues")
+@CrossOrigin(origins = "*")
 public class QueueAdminController {
 
-    private final RabbitAdminService adminService;
+    private final RabbitAdminService rabbitAdminService;
 
-    public QueueAdminController(RabbitAdminService adminService) {
-        this.adminService = adminService;
+    public QueueAdminController(RabbitAdminService rabbitAdminService) {
+        this.rabbitAdminService = rabbitAdminService;
     }
 
-    @PostMapping
-    public ResponseEntity<Map<String, Object>> createQueue(@Valid @RequestBody QueueRequestDto dto) {
-        boolean created = adminService.createQueue(dto.getName(), dto.isDurable());
-
-        Map<String, Object> response = new HashMap<>();
-        if (created) {
-            response.put("status", "SUCCESS");
-            response.put("message", "Cola creada correctamente");
-            response.put("queue", dto.getName());
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } else {
-            response.put("status", "ERROR");
-            response.put("message", "No fue posible crear la cola");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    @PostMapping("/queues")
+    public ResponseEntity<?> createQueue(@RequestBody QueueRequestDto dto) {
+        if (dto == null || dto.getName() == null || dto.getName().isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "El nombre de la cola no puede estar vacío."));
         }
+        rabbitAdminService.createQueue(dto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("message", "Cola creada exitosamente", "queue", dto.getName().trim()));
     }
 
-    @DeleteMapping("/{name}")
-    public ResponseEntity<Map<String, Object>> deleteQueue(@PathVariable String name) {
-        boolean deleted = adminService.deleteQueue(name);
-
-        Map<String, Object> response = new HashMap<>();
-        if (deleted) {
-            response.put("status", "SUCCESS");
-            response.put("message", "Cola eliminada correctamente");
-            response.put("queue", name);
-            return ResponseEntity.ok(response);
-        } else {
-            response.put("status", "NOT_FOUND");
-            response.put("message", "La cola no existe o no pudo ser eliminada");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    @DeleteMapping("/queues/{name}")
+    public ResponseEntity<?> deleteQueue(@PathVariable String name) {
+        if (name == null || name.isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Debe indicar un nombre de cola válido para eliminar."));
         }
+        boolean deleted = rabbitAdminService.deleteQueue(name);
+        return ResponseEntity.ok(Map.of("message", "Operación completada", "queue", name, "deleted", deleted));
     }
 
-    @GetMapping("/{name}")
-    public ResponseEntity<?> getQueueInfo(@PathVariable String name) {
-        Properties properties = adminService.getQueueProperties(name);
-        if (properties == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Cola no encontrada"));
+    @PostMapping("/exchanges")
+    public ResponseEntity<?> createExchange(@RequestBody ExchangeRequestDto dto) {
+        if (dto == null || dto.getName() == null || dto.getName().isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "El nombre del exchange no puede estar vacío."));
         }
-        return ResponseEntity.ok(properties);
+        rabbitAdminService.createExchange(dto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("message", "Exchange creado exitosamente", "exchange", dto.getName().trim()));
+    }
+
+    @DeleteMapping("/exchanges/{name}")
+    public ResponseEntity<?> deleteExchange(@PathVariable String name) {
+        if (name == null || name.isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Debe indicar un nombre de exchange válido."));
+        }
+        boolean deleted = rabbitAdminService.deleteExchange(name);
+        return ResponseEntity.ok(Map.of("message", "Exchange eliminado", "exchange", name, "deleted", deleted));
+    }
+
+    @PostMapping("/bindings")
+    public ResponseEntity<?> createBinding(@RequestBody BindingRequestDto dto) {
+        if (dto == null || dto.getQueueName() == null || dto.getQueueName().isBlank()
+                || dto.getExchangeName() == null || dto.getExchangeName().isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "queueName y exchangeName son obligatorios para crear un binding."));
+        }
+        rabbitAdminService.createBinding(dto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("message", "Binding creado exitosamente"));
     }
 }
