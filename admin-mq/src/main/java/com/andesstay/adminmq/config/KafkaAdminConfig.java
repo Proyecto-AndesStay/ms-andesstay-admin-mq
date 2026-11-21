@@ -42,13 +42,35 @@ public class KafkaAdminConfig {
                 .build();
     }
 
-    // Topico 2: Auditoria de Eventos (3 particiones, 3 replicas, retencion 30 dias)
+    // Topico 2: Auditoria de Eventos (3 particiones, 3 replicas, compact,delete, retencion 30 dias)
     @Bean
     public NewTopic auditoriaEventosTopic() {
         return TopicBuilder.name("andesstay-auditoria-eventos")
                 .partitions(3)
                 .replicas(3)
                 .config(TopicConfig.RETENTION_MS_CONFIG, "2592000000")
+                .config(TopicConfig.CLEANUP_POLICY_CONFIG, "compact,delete")
+                .build();
+    }
+
+    // Topico DLT para Auditoria (3 particiones, 3 replicas, retencion 14 dias)
+    @Bean
+    public NewTopic auditoriaEventosDltTopic() {
+        return TopicBuilder.name("andesstay-auditoria-eventos.DLT")
+                .partitions(3)
+                .replicas(3)
+                .config(TopicConfig.RETENTION_MS_CONFIG, "1209600000")
+                .config(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE)
+                .build();
+    }
+
+    // Topico DLT para Streaming de Reservas (3 particiones, 3 replicas, retencion 14 dias)
+    @Bean
+    public NewTopic reservasStreamingDltTopic() {
+        return TopicBuilder.name("andesstay-reservas-streaming.DLT")
+                .partitions(3)
+                .replicas(3)
+                .config(TopicConfig.RETENTION_MS_CONFIG, "1209600000")
                 .config(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE)
                 .build();
     }
